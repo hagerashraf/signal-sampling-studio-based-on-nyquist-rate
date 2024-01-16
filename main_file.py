@@ -6,7 +6,6 @@
 #
 # WARNING! All changes made in this file will be lost!
 
-import itertools
 from pyqtgraph import PlotWidget
 from Task2GUI_composerFinal import Ui_Form
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -142,10 +141,10 @@ class Ui_MainWindow(object):
         self.actionOpen_composer.triggered.connect(lambda:self.openSecond())
 
         self.timer1 = QtCore.QTimer()
-        self.time1 = []
-        self.amp1 =[]
-        
-        #self.timeSample=0
+        self.time1=0
+        self.amp1=0
+        self.ampArray=0
+        self.timeSample=0
         self.numSamples=0
         self.samplingInterval=0
         self.Fsample=0
@@ -160,8 +159,7 @@ class Ui_MainWindow(object):
         self.array1=0
         self.array2=0
         self.array3=0
-        self.logHistory=[]
-        global dataFile
+        
         
         self.secindaryChannel.setXRange(0, 2, padding=0)     
         self.secindaryChannel.setLimits(xMin=0)
@@ -191,143 +189,86 @@ class Ui_MainWindow(object):
         self.actionHide_2nd_Ch.setText(_translate("MainWindow", "Hide 2nd Ch"))
         self.actionExit.triggered.connect(lambda: self.exitApp())
         self.actionOpen_file.triggered.connect(lambda: self.openFile())
-        self.actionSample.triggered.connect(lambda: self.signalSample(self.dataFile, self.freqSlider.value(), self.amp1))
-        self.freqSlider.valueChanged.connect(lambda: self.signalSample(self.dataFile,self.freqSlider.value(),self.amp1))
+        self.actionSample.triggered.connect(lambda: self.signalSample(self.time1,self.amp1,self.coeffSample))
+        self.freqSlider.valueChanged.connect(lambda: self.signalSample(self.time1,self.amp1,self.freqSlider.value()))
         self.actionHide_2nd_Ch.triggered.connect(lambda: self.hideSecondChannel())
         self.actionShow_2nd_Ch.triggered.connect(lambda: self.showSecondChannel())
-        self.actionReconstruct.triggered.connect(lambda: self.reConstruct(self.numSamples, self.samplingInterval, self.ampArray))
+        self.actionReconstruct.triggered.connect(lambda: self.reConstruct(self.numSamples, self.samplingInterval, self.ampArray, self.timeSample))
         
         
-    ##hiding the secondary channel by default
-        self.secindaryChannel.setMaximumHeight(0)
-        self.secondaryLabel.setMaximumHeight(0)
 
     def openFile(self):
-      
       """opens a file from the brower """
       file_path=QFileDialog.getOpenFileName()
       self.file_name=file_path[0].split('/')[-1]
       self.read_data(self.file_name)
-      self.logHistory.append("Opening file")
-      
 
     def read_data(self,file_name):
         """loads the data from chosen file"""
-        self.dataFile=pd.read_csv(file_name)
+        global dataFile
+        dataFile=pd.read_csv(file_name)
         self.label1=file_name
-        self.time1=list(pd.to_numeric(self.dataFile['time'],downcast="float"))
-        self.amp1=list(pd.to_numeric(self.dataFile['amplitude'],downcast="float"))
-        self.draw(self.color)
-        self.signalSample(self.dataFile, self.freqSlider.value(), self.amp1)
-        self.logHistory.append("Reading file")
+        self.time1=list(pd.to_numeric(dataFile['time'],downcast="float"))
+        self.amp1=list(pd.to_numeric(dataFile['amplitude'],downcast="float"))
+        self.draw(self.time1,self.amp1,self.color)
+        self.signalSample(self.time1, self.amp1,0)
 
-    def draw(self,color):
-        """Clearing main channel in case of recalling"""
-        self.mainChannel.clear()
+    def draw(self,time,amp,color):
         """sets up our canvas to plot"""
+        self.time1 = time
+        self.amp1=amp
         self.index=0  
         pen = pyqtgraph.mkPen(color) #signal color
-        self.mainChannel.plot(self.time1, self.amp1, pen=pen)
-        print(self.amp1)
+        self.mainChannel.plot(self.time1[0:self.index+1000], self.amp1[0:self.index+1000], pen=pen)
         self.timer1.setInterval(100)
         self.timer1.start()
 
-        self.logHistory.append("Drawing the read signal")
-
-    def signalSample(self, signal,sliderValue,amplitudes):
-        self.secindaryChannel.clear()
-        self.logHistory.append("Slider value = ")
-        self.logHistory.append(sliderValue)
-        if sliderValue==0:
-            self.logHistory.append("inside sample but slider didn't move!")
-            self.logHistory.append("Sampling value = 0 , use the slider please!")
-        else:
-            self.coeffSample=sliderValue
-            #sampleFreqs, segmentTimes, sxx= signal.spectrogram(signal,, nperseg=256, noverlap=128, nfft=512, window=('hamming'))
-            Fourier2DArray=fft(signal)
-            self.logHistory.append("Fourier 2D")
-            self.logHistory.append(Fourier2DArray)
-            #print(type(FourierArray))
-            #Fourier1DArray=Fourier2DArray.flatten()
-            frequenciesArray = map(lambda Fourier1DArray: Fourier1DArray[0], Fourier2DArray)
-            self.logHistory.append("Frequencies")
-            self.logHistory.append(frequenciesArray)
-            Fmax = int(abs(max(frequenciesArray)))
-            samplingRate = self.coeffSample * Fmax
-            samplingInterval =1/samplingRate
-            self.timeEnd=self.time1[-1]
-            self.timeBegin=0
-            #self.timeSample = np.arange(self.timeBegin,(self.timeEnd),(self.timeEnd/len(self.time1)))
-            ampArray =list(itertools.repeat(0, len(self.time1)))
-            self.numSamples=int(self.timeEnd/samplingInterval)
-            samplingStep= int(len(self.time1)/self.numSamples)
-            counter=0
-            sampleCounter=0
-            self.logHistory.append("Fmax = ")
-            self.logHistory.append(Fmax)
-            #self.logHistory.append("Length of timeSample = ")
-            #self.logHistory.append(len(self.timeSample))
-            self.logHistory.append("samplingInterval = ")
-            self.logHistory.append(samplingInterval)
-            self.logHistory.append("number of Samples = ")
-            self.logHistory.append(self.numSamples)
-            self.logHistory.append("Sampled amplitude array")
-            self.logHistory.append(ampArray)
+    def signalSample(self,time, amp,sliderValue):
+        self.coeffSample=sliderValue
+        Fmax = (max(ifft(fft(amp)))).real
+        self.Fsample = self.coeffSample * Fmax
+        self.samplingInterval =(self.Fsample)
+        self.timeEnd=time[len(time)-1]
+        self.timeBeign=0
+        self.timeSample = np.arange(self.timeBeign,(self.timeEnd),(self.timeEnd/len(time)))
+        self.ampArray =[None]*len(self.timeSample)
+        self.numSamples=max(self.timeSample*self.Fsample)
+        self.samplingStep= int(len(self.ampArray)/self.numSamples)
+        counter=0
+        sampleCounter=0
         
+        while (sampleCounter <len(self.ampArray)):
+            self.ampArray[sampleCounter]=amp[sampleCounter]
+            sampleCounter = sampleCounter+self.samplingStep
+ 
+        self.mainChannel.plot(self.timeSample[0:len(self.timeSample)],self.ampArray[0:len(self.timeSample)], symbol = '+')
 
-            while (sampleCounter <len(self.time1)):
-                ampArray[sampleCounter]=amplitudes[sampleCounter]
-                
-                sampleCounter = sampleCounter+samplingStep
-                print(sampleCounter)
-                #print(amplitudes[sampleCounter])
-                #print(self.ampArray[sampleCounter])
-
-            print(ampArray)
-            self.logHistory.append("sucessfully finished the sampling")
-         # self.updatePlot(sliderValue,timeSample,ampArray)
-            pen = pyqtgraph.mkPen('Blue') #signal color
-            self.logHistory.append("choose blue for the sampled")
-            self.secindaryChannel.plot(self.time1, ampArray, symbl= '+')
-            #self.mainChannel.plot(self.time1[0:len(self.time1)],self.ampArray[0:len(self.time1)], symbol = '+')
-            self.logHistory.append("Passed by the draw call of the samples")
-
-            
     def reConstruct(self, numSample, tVal, ampArr, tSample):
-        self.logHistory.append("Inside the reconstruction function ")
         timeReconstrct=tSample
         ampReconstruct=ampArr
-        #print(len(ampReconstruct))
-        #removing the none
         i=0
         while i < len(ampReconstruct):
             if ampReconstruct[i] == None:
                 ampReconstruct[i]=0
             i=i+1
-        sumSignalReconstruct=[0]*len(self.time1)
+        sumSignalReconstruct=[0]*len(self.timeSample)
 
         FReConstSample= self.Fsample
         j=0        
-        #print("===============================================================================================")
+        
         maxAmp= max(self.ampArray)
         while j < len(timeReconstrct):
-            #print(j)
-            #print(ampReconstruct[j])
-            #print( ampReconstruct[j])
-            #print(numpy.sinc(j))
             for k in np.arange(-len(timeReconstrct), len(timeReconstrct),1):
                 sumSignalReconstruct[j] += maxAmp*((numpy.sinc((timeReconstrct[j]-(k*(1/FReConstSample)))/(1/FReConstSample))))
             j+=1
-        #print(sumSignalReconstruct)
-        #print(ampReconstruct)
            
         self.secindaryChannel.plot(timeReconstrct[0:len(timeReconstrct)],sumSignalReconstruct[0:len(timeReconstrct)])
         self.updateReconstruct(timeReconstrct,sumSignalReconstruct,self.freqSlider.value()) 
 
     def updateReconstruct(self,time,sum,val):
-        self.logHistory.append("Inside the update reconstruction function ")
         
         if val==0:
+            
             self.secindaryChannel.plot(time[0:len(time)],self.array1[0:len(time)],pen = pyqtgraph.mkPen("#000000"))
             self.secindaryChannel.plot(time[0:len(time)],self.array2[0:len(time)],pen = pyqtgraph.mkPen("#000000"))
             self.secindaryChannel.plot(time[0:len(time)],self.array3[0:len(time)],pen = pyqtgraph.mkPen("#000000"))
@@ -339,7 +280,6 @@ class Ui_MainWindow(object):
             self.secindaryChannel.plot(time[0:len(time)],self.array3[0:len(time)],pen = pyqtgraph.mkPen("#000000"))
 
         elif val==2:
-           
             self.array2=sum
             self.secindaryChannel.plot(time[0:len(time)],self.array1[0:len(time)],pen = pyqtgraph.mkPen("#000000"))
             self.secindaryChannel.plot(time[0:len(time)],self.array2[0:len(time)],pen = pyqtgraph.mkPen("#ffaa00"))
@@ -350,25 +290,15 @@ class Ui_MainWindow(object):
             self.secindaryChannel.plot(time[0:len(time)],self.array1[0:len(time)],pen = pyqtgraph.mkPen("#000000"))
             self.secindaryChannel.plot(time[0:len(time)],self.array2[0:len(time)],pen = pyqtgraph.mkPen("#000000"))
             self.secindaryChannel.plot(time[0:len(time)],self.array3[0:len(time)],pen = pyqtgraph.mkPen("#ffaa00"))
-        
-
-
-
-
 
     def hideSecondChannel(self):
         self.secindaryChannel.setMaximumHeight(0)
-        self.secondaryLabel.setMaximumHeight(0)
 
     def showSecondChannel(self):
         self.secindaryChannel.setMinimumHeight(0)
         self.secindaryChannel.setMaximumHeight(200)
-        self.secondaryLabel.setMaximumHeight(30)
-
 
     def exitApp(self):
-        self.logHistory.append("Closing!! BYE ")
-        self.logging()
         sys.exit()
 
     def move_to_main(self):
@@ -378,21 +308,14 @@ class Ui_MainWindow(object):
         self.move_amp=self.ui.sum_amp
         self.mainChannel.plot(self.move_t,self.move_amp)
 
-
     def openSecond(self):
         """opens the composer gui"""
-
         self.Form = QtWidgets.QMainWindow()
         self.ui = Ui_Form()
         self.ui.setupUi(self.Form)
         self.Form.show()
         self.ui.pushButton_2.clicked.connect( lambda : self.move_to_main())
 
-    def logging(self):
-        f=open("Task2Log.txt","w+")
-        for i in self.logHistory:
-            f.write("=> %s\r\n" %(i))
-        f.close()    
 
 
 if __name__ == "__main__":

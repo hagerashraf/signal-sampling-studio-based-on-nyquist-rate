@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 from PyQt5 import QtCore, QtGui, QtWidgets
 from pyqtgraph import PlotWidget
-import pyqtgraph  
+import pyqtgraph
 
 class Ui_Form(object):
     def setupUi(self, Form):
@@ -132,10 +132,12 @@ class Ui_Form(object):
         sizePolicy.setHeightForWidth(self.pushButton.sizePolicy().hasHeightForWidth())
         self.pushButton.setSizePolicy(sizePolicy)
         self.pushButton.setObjectName("pushButton")
-    
+        self.pushButton.clicked.connect( lambda : self.plot_summation())
+        
         self.pushButton_4.setSizePolicy(sizePolicy)
         self.pushButton_4.setObjectName("pushButton_4")
-        
+        self.pushButton_4.clicked.connect( lambda : self.read())
+
         self.pushButton_5.setSizePolicy(sizePolicy)
         self.formLayout.setWidget(15, QtWidgets.QFormLayout.FieldRole, self.pushButton_5)
 
@@ -192,10 +194,6 @@ class Ui_Form(object):
         self.retranslateUi(Form)
         QtCore.QMetaObject.connectSlotsByName(Form)
         
-     
-
-
-
     def retranslateUi(self, Form):
         _translate = QtCore.QCoreApplication.translate
         Form.setWindowTitle(_translate("Form", "Form"))
@@ -213,15 +211,10 @@ class Ui_Form(object):
         self.menuComposer.setTitle(_translate("Form", "Composer"))
         self.actionSave_composed_signal.setText(_translate("Form", "Save composed signal"))
 
-     #combo box -hussien
         self.pushButton_3.clicked.connect(lambda : self.removeSinCombo(self.comboBox.currentIndex()))
-        self.pushButton_4.clicked.connect( lambda : self.read())
         self.pushButton_5.clicked.connect(lambda: self.addSinCombo())
-        self.pushButton.clicked.connect( lambda : self.plot_summation())
+        
         self.actionSave_composed_signal.triggered.connect(lambda: self.gen_csv())
-       
-   #     self.pushButton_2.clicked.connect( lambda : self.move_to_main())
-
 
         self.freq = 1
         self.mag = 1
@@ -230,9 +223,6 @@ class Ui_Form(object):
         self.summation_dict={}
         self.sum_amp=[]
         self.t=np.linspace(0, 5, 1000)
-
-        
-        
         
     def removeSinCombo(self , index):
         if index==-1:
@@ -258,13 +248,10 @@ class Ui_Form(object):
             except ValueError:
                 print("phase should be anumber")                
             self.plotSin(self.freq , self.mag , self.ph)
-                    
-
 
     def plotSin(self , freq , magnitude , phase):
         amp = self.generateSin(freq , magnitude , phase)
         self.drawSin(amp)
-
 
     def generateSin(self ,freq , magnitude , phase):
         sinamp = magnitude * np.sin(2*(np.pi)*freq*self.t+phase)
@@ -278,7 +265,7 @@ class Ui_Form(object):
         
         value = self.curve1.getData()[1]
         self.summation_dict["signal{}".format(self.comboBox.count()-1)]=value
-        
+    
     def plot_summation(self):
         self.curve2.clear()
         self.sum_amp=sum(self.summation_dict.values())
@@ -288,7 +275,6 @@ class Ui_Form(object):
         except:
             print('no data to plot')
 
-      
     def remove_from_summation(self,index):
         try:
             self.summation_dict.pop("signal{}".format(index))
@@ -298,15 +284,11 @@ class Ui_Form(object):
         self.plot_summation()
     #    self.curve2.clear()
         pass
-       
-        
+
     def gen_csv(self):
         df = pd.DataFrame({"time" :self.t, "amplitude" :self.sum_amp})
         df.to_csv("sinusoidal.csv", index=False)
-
-    
-        
-        
+       
 if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)
